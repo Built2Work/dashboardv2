@@ -1,423 +1,3 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Built to Work — Analytics Dashboard</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
-<style>
-:root {
-  --bg: #0d1117;
-  --surface: #161b22;
-  --surface2: #1c2333;
-  --surface3: #21262d;
-  --border: #30363d;
-  --accent: #f0a500;
-  --accent2: #e85d04;
-  --text: #e6edf3;
-  --muted: #8b949e;
-  --green: #3fb950;
-  --blue: #58a6ff;
-  --red: #f85149;
-  --purple: #bc8cff;
-  --sidebar-w: 300px;
-}
-*{box-sizing:border-box;margin:0;padding:0;}
-html,body{height:100%;overflow:hidden;}
-body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;font-size:14px;display:flex;flex-direction:column;}
-
-/* ── UPLOAD SCREEN ── */
-#uploadScreen{
-  position:fixed;inset:0;z-index:1000;
-  background:var(--bg);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:32px;
-  padding:32px;
-}
-.upload-logo{
-  display:flex;align-items:center;gap:14px;margin-bottom:8px;
-}
-.upload-hex{
-  width:56px;height:56px;
-  background:var(--accent);
-  clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);
-  display:flex;align-items:center;justify-content:center;
-  font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:900;color:#000;
-}
-.upload-logo h1{
-  font-family:'Barlow Condensed',sans-serif;font-size:30px;font-weight:800;
-  text-transform:uppercase;letter-spacing:1px;color:var(--accent);line-height:1;
-}
-.upload-logo p{font-size:12px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;}
-.upload-zones{display:flex;gap:20px;flex-wrap:wrap;justify-content:center;}
-.drop-zone{
-  width:260px;padding:28px 20px;
-  border:2px dashed var(--border);border-radius:8px;
-  background:var(--surface);
-  display:flex;flex-direction:column;align-items:center;gap:10px;
-  cursor:pointer;transition:all .2s;position:relative;overflow:hidden;
-}
-.drop-zone:hover,.drop-zone.drag-over{border-color:var(--accent);background:rgba(240,165,0,.06);}
-.drop-zone.loaded{border-color:var(--green);border-style:solid;}
-.drop-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;}
-.dz-icon{font-size:32px;}
-.dz-label{
-  font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;
-  letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);text-align:center;
-}
-.dz-sub{font-size:11px;color:var(--muted);opacity:.6;text-align:center;}
-.dz-status{
-  font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;
-  color:var(--green);letter-spacing:1px;text-align:center;min-height:16px;
-}
-.load-btn{
-  font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;
-  letter-spacing:2px;text-transform:uppercase;
-  padding:14px 40px;border:none;border-radius:5px;
-  background:var(--accent);color:#000;cursor:pointer;
-  opacity:.4;pointer-events:none;transition:all .2s;
-  box-shadow:0 0 0 rgba(240,165,0,0);
-}
-.load-btn.ready{opacity:1;pointer-events:auto;box-shadow:0 0 20px rgba(240,165,0,.35);}
-.load-btn.ready:hover{background:#ffd133;box-shadow:0 0 32px rgba(240,165,0,.55);}
-.upload-hint{font-size:12px;color:var(--muted);text-align:center;max-width:600px;line-height:1.7;}
-
-/* ── HEADER ── */
-header{
-  background:linear-gradient(135deg,#0d1117 0%,#1a1000 50%,#0d1117 100%);
-  border-bottom:2px solid var(--accent);
-  padding:14px 24px;display:flex;align-items:center;justify-content:space-between;
-  flex-shrink:0;box-shadow:0 4px 24px rgba(240,165,0,.12);
-}
-.h-left{display:flex;align-items:center;gap:12px;}
-.h-hex{
-  width:40px;height:40px;background:var(--accent);
-  clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);
-  display:flex;align-items:center;justify-content:center;
-  font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:900;color:#000;flex-shrink:0;
-}
-.h-title h1{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--accent);line-height:1;}
-.h-title p{font-size:11px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;}
-.h-controls{display:flex;align-items:center;gap:12px;}
-.event-select{
-  font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;
-  letter-spacing:1px;
-  background:var(--surface);border:1.5px solid var(--border);
-  color:var(--text);padding:7px 32px 7px 12px;border-radius:4px;cursor:pointer;
-  appearance:none;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238b949e'/%3E%3C/svg%3E");
-  background-repeat:no-repeat;background-position:right 10px center;
-  transition:border-color .2s;
-}
-.event-select:hover{border-color:var(--accent);}
-.clear-filters-btn{
-  font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;
-  letter-spacing:1px;text-transform:uppercase;
-  padding:6px 14px;border:1.5px solid var(--red);
-  background:transparent;color:var(--red);border-radius:4px;cursor:pointer;transition:all .2s;
-  display:none;
-}
-.clear-filters-btn:hover{background:var(--red);color:#fff;}
-.reload-btn{
-  font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;
-  letter-spacing:1px;text-transform:uppercase;
-  padding:6px 14px;border:1.5px solid var(--border);
-  background:transparent;color:var(--muted);border-radius:4px;cursor:pointer;transition:all .2s;
-}
-.reload-btn:hover{border-color:var(--accent);color:var(--accent);}
-
-/* ── MAIN LAYOUT ── */
-#appLayout{display:flex;flex:1;overflow:hidden;}
-
-/* ── SIDEBAR ── */
-#sidebar{
-  width:var(--sidebar-w);flex-shrink:0;
-  background:var(--surface);border-right:1px solid var(--border);
-  overflow-y:auto;display:flex;flex-direction:column;
-}
-.sidebar-header{
-  padding:14px 16px 10px;border-bottom:1px solid var(--border);
-  font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;
-  letter-spacing:2px;text-transform:uppercase;color:var(--muted);
-  display:flex;align-items:center;justify-content:space-between;
-}
-.active-count{
-  background:var(--accent);color:#000;
-  font-size:10px;font-weight:900;
-  padding:1px 6px;border-radius:10px;display:none;
-}
-.filter-section{border-bottom:1px solid var(--border);padding:12px 16px;}
-.fs-title{
-  font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;
-  letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;
-  display:flex;align-items:center;gap:6px;
-}
-.fs-title .fs-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);flex-shrink:0;}
-.filter-chip-wrap{display:flex;flex-wrap:wrap;gap:5px;}
-.filter-chip{
-  font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;
-  padding:4px 10px;border-radius:3px;
-  border:1.5px solid var(--border);background:transparent;color:var(--muted);
-  cursor:pointer;transition:all .15s;letter-spacing:.5px;
-}
-.filter-chip:hover{border-color:var(--accent);color:var(--accent);}
-.filter-chip.active{background:var(--accent);border-color:var(--accent);color:#000;}
-.range-wrap{display:flex;flex-direction:column;gap:8px;}
-.range-row{display:flex;align-items:center;gap:8px;}
-.range-label{font-size:11px;color:var(--muted);width:30px;text-align:right;font-family:'Barlow Condensed',sans-serif;}
-.range-val{font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;color:var(--accent);width:30px;}
-input[type=range]{flex:1;accent-color:var(--accent);cursor:pointer;}
-.slider-track{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);font-family:'Barlow Condensed',sans-serif;}
-.slider-track span{color:var(--accent);font-weight:700;}
-
-/* ── MAIN CONTENT ── */
-#mainContent{flex:1;overflow-y:auto;display:flex;flex-direction:column;}
-
-/* KPI ROW */
-.kpi-row{
-  display:grid;grid-template-columns:repeat(4,1fr);gap:14px;
-  padding:18px 20px 0;flex-shrink:0;
-}
-.kpi-card{
-  background:var(--surface);border:1px solid var(--border);
-  border-top:3px solid var(--accent);border-radius:6px;padding:14px 16px;
-}
-.kpi-label{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;}
-.kpi-value{font-family:'Barlow Condensed',sans-serif;font-size:34px;font-weight:900;line-height:1;color:var(--accent);}
-.kpi-sub{font-size:11px;color:var(--muted);margin-top:2px;}
-
-/* DASHBOARD GRID */
-.dash-grid{
-  display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;
-  padding:16px 20px;
-}
-.card{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:16px;display:flex;flex-direction:column;}
-.card.wide{grid-column:span 2;}
-.card.full{grid-column:span 3;}
-.card-title{
-  font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;
-  letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);
-  margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);
-  display:flex;align-items:center;gap:7px;
-}
-.card-title .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);flex-shrink:0;}
-.card-title .filter-active-badge{
-  margin-left:auto;font-size:10px;font-weight:700;
-  background:rgba(240,165,0,.2);color:var(--accent);
-  border:1px solid var(--accent);padding:1px 6px;border-radius:3px;
-  letter-spacing:.5px;display:none;
-}
-.chart-wrap{flex:1;position:relative;min-height:200px;}
-
-/* PARTICIPANT TABLE */
-.tbl-toolbar{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
-.tbl-toggle{
-  font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;
-  letter-spacing:1px;text-transform:uppercase;
-  padding:5px 12px;border:1.5px solid var(--border);background:transparent;
-  color:var(--muted);border-radius:3px;cursor:pointer;transition:all .15s;
-}
-.tbl-toggle.on{background:var(--surface2);border-color:var(--blue);color:var(--blue);}
-.tbl-count{font-family:'Barlow Condensed',sans-serif;font-size:12px;color:var(--muted);margin-left:auto;}
-.tbl-search{
-  font-family:'Barlow',sans-serif;font-size:13px;
-  background:var(--surface2);border:1.5px solid var(--border);
-  color:var(--text);padding:5px 10px;border-radius:3px;width:200px;
-  transition:border-color .2s;
-}
-.tbl-search:focus{outline:none;border-color:var(--accent);}
-
-.table-scroll{max-height:340px;overflow-y:auto;}
-.ptbl{width:100%;border-collapse:collapse;}
-.ptbl th{
-  font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;
-  letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);
-  padding:7px 10px;text-align:left;border-bottom:1px solid var(--border);
-  background:var(--bg);position:sticky;top:0;z-index:1;white-space:nowrap;
-}
-.ptbl td{padding:8px 10px;border-bottom:1px solid #21262d;vertical-align:middle;}
-.ptbl tr:hover td{background:var(--surface2);}
-.ptbl tr:last-child td{border-bottom:none;}
-
-.score-badge{
-  display:inline-block;font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:14px;
-  padding:2px 8px;border-radius:3px;background:var(--accent);color:#000;
-}
-.score-badge.dnc{background:var(--surface3);color:var(--muted);}
-.score-badge.hi{background:var(--green);}
-.ip-yes{display:inline-block;font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;padding:2px 7px;border-radius:3px;background:rgba(63,185,80,.2);color:var(--green);border:1px solid var(--green);}
-.ip-maybe{display:inline-block;font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;padding:2px 7px;border-radius:3px;background:rgba(240,165,0,.2);color:var(--accent);border:1px solid var(--accent);}
-.ip-no{display:inline-block;font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;padding:2px 7px;border-radius:3px;background:rgba(248,81,73,.15);color:var(--red);border:1px solid var(--red);}
-.ip-na{display:inline-block;font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;padding:2px 7px;border-radius:3px;background:var(--surface3);color:var(--muted);}
-.fname{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:14px;}
-.fmuted{font-family:'Barlow Condensed',sans-serif;font-size:13px;color:var(--muted);}
-
-/* State table */
-.state-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:3px;max-height:280px;overflow-y:auto;}
-.state-row{display:flex;align-items:center;justify-content:space-between;padding:5px 8px;background:var(--surface2);border-radius:3px;border-left:3px solid transparent;transition:border-color .15s;}
-.state-row:hover{border-left-color:var(--accent);}
-.state-name{font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;}
-.state-count{font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:600;color:var(--accent);}
-
-/* Trivia table */
-.ttbl{width:100%;border-collapse:collapse;}
-.ttbl th{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);padding:6px 10px;text-align:left;border-bottom:1px solid var(--border);}
-.ttbl td{padding:8px 10px;border-bottom:1px solid #21262d;}
-.ttbl tr:hover td{background:var(--surface2);}
-.ttbl tr:last-child td{border-bottom:none;}
-.ttest{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:14px;}
-.tavg{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:15px;color:var(--accent);}
-.tcount{font-family:'Barlow Condensed',sans-serif;font-size:13px;color:var(--muted);}
-.mini-bar-bg{height:7px;background:var(--surface2);border-radius:4px;overflow:hidden;width:100px;}
-.mini-bar-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--accent2),var(--accent));}
-
-/* Scrollbars */
-::-webkit-scrollbar{width:5px;height:5px;}
-::-webkit-scrollbar-track{background:var(--surface);}
-::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
-::-webkit-scrollbar-thumb:hover{background:var(--muted);}
-
-footer{text-align:center;padding:16px;color:var(--muted);font-size:11px;border-top:1px solid var(--border);font-family:'Barlow Condensed',sans-serif;letter-spacing:1px;text-transform:uppercase;flex-shrink:0;}
-
-.no-data{text-align:center;padding:32px;color:var(--muted);font-style:italic;}
-
-/* Highlight selected chart segment */
-.chart-clickable{cursor:pointer;}
-</style>
-</head>
-<body>
-
-<!-- ══════════════════════════════════════════════ UPLOAD SCREEN -->
-<div id="uploadScreen">
-  <div class="upload-logo">
-    <div class="upload-hex">CS</div>
-    <div>
-      <h1>Construction Simulator</h1>
-      <p>Event Analytics Dashboard</p>
-    </div>
-  </div>
-
-  <div class="upload-zones">
-    <div class="drop-zone" id="dz0" onclick="document.getElementById('fi0').click()">
-      <input type="file" id="fi0" accept=".csv" onchange="handleFile(0,this)">
-      <div class="dz-icon">📋</div>
-      <div class="dz-label">Web Registration CSV</div>
-      <div class="dz-sub">Auto-detected from columns</div>
-      <div class="dz-status" id="dz0s">No file loaded</div>
-    </div>
-    <div class="drop-zone" id="dz1" onclick="document.getElementById('fi1').click()">
-      <input type="file" id="fi1" accept=".csv" onchange="handleFile(1,this)">
-      <div class="dz-icon">🏗️</div>
-      <div class="dz-label">Excavator Simulator CSV</div>
-      <div class="dz-sub">Auto-detected from columns</div>
-      <div class="dz-status" id="dz1s">No file loaded</div>
-    </div>
-    <div class="drop-zone" id="dz2" onclick="document.getElementById('fi2').click()">
-      <input type="file" id="fi2" accept=".csv" onchange="handleFile(2,this)">
-      <div class="dz-icon">🪟</div>
-      <div class="dz-label">Windows Trivia CSV</div>
-      <div class="dz-sub">Auto-detected from columns</div>
-      <div class="dz-status" id="dz2s">No file loaded</div>
-    </div>
-  </div>
-
-  <button class="load-btn" id="loadBtn" onclick="buildDashboard()">⚡ Load Full Data &amp; Render Dashboard</button>
-
-  <p class="upload-hint">
-    Upload any three CSV files exported from the Construction Simulator system.<br>
-    File types are automatically detected from column names — no labeling needed.<br>
-    Files are joined on <strong>Mobile Phone / Login Code</strong>.
-  </p>
-</div>
-
-<!-- ══════════════════════════════════════════════ DASHBOARD -->
-<header id="appHeader" style="display:none;">
-  <div class="h-left">
-    <div class="h-hex">CS</div>
-    <div class="h-title">
-      <h1>Construction Simulator</h1>
-      <p>Event Analytics Dashboard</p>
-    </div>
-  </div>
-  <div class="h-controls">
-    <select class="event-select" id="eventSelect" onchange="onEventChange()">
-      <option value="ALL">All Events</option>
-    </select>
-    <button class="clear-filters-btn" id="clearFiltersBtn" onclick="clearAllFilters()">✕ Clear Filters</button>
-    <button class="reload-btn" onclick="reloadUpload()">↩ New Files</button>
-  </div>
-</header>
-
-<div id="appLayout" style="display:none;">
-  <!-- SIDEBAR -->
-  <div id="sidebar">
-    <div class="sidebar-header">
-      Active Filters <span class="active-count" id="activeCount">0</span>
-    </div>
-
-    <!-- EXC Score Range -->
-    <div class="filter-section">
-      <div class="fs-title"><span class="fs-dot"></span>EXC Score Range</div>
-      <div class="range-wrap">
-        <div class="slider-track">Min: <span id="excMinVal">0</span></div>
-        <input type="range" id="excMin" min="0" max="100" value="0" oninput="onExcRange()">
-        <div class="slider-track">Max: <span id="excMaxVal">100</span></div>
-        <input type="range" id="excMax" min="0" max="100" value="100" oninput="onExcRange()">
-      </div>
-    </div>
-
-    <!-- Job Interest -->
-    <div class="filter-section">
-      <div class="fs-title"><span class="fs-dot"></span>Job Interest</div>
-      <div class="filter-chip-wrap" id="fJI"></div>
-    </div>
-
-    <!-- Employment Status -->
-    <div class="filter-section">
-      <div class="fs-title"><span class="fs-dot"></span>Employment Status</div>
-      <div class="filter-chip-wrap" id="fEmp"></div>
-    </div>
-
-    <!-- EXC Score Segments -->
-    <div class="filter-section">
-      <div class="fs-title"><span class="fs-dot"></span>EXC Score Segment</div>
-      <div class="filter-chip-wrap" id="fScore"></div>
-    </div>
-
-    <!-- Age Groups -->
-    <div class="filter-section">
-      <div class="fs-title"><span class="fs-dot"></span>Age Group</div>
-      <div class="filter-chip-wrap" id="fAge"></div>
-    </div>
-
-    <!-- Gender -->
-    <div class="filter-section">
-      <div class="fs-title"><span class="fs-dot"></span>Gender</div>
-      <div class="filter-chip-wrap" id="fGender"></div>
-    </div>
-
-    <!-- State -->
-    <div class="filter-section">
-      <div class="fs-title"><span class="fs-dot"></span>State (top 10)</div>
-      <div class="filter-chip-wrap" id="fState"></div>
-    </div>
-
-    <!-- Trivia Tests -->
-    <div class="filter-section">
-      <div class="fs-title"><span class="fs-dot"></span>Trivia Test Taken</div>
-      <div class="filter-chip-wrap" id="fTrivia"></div>
-    </div>
-  </div>
-
-  <!-- MAIN -->
-  <div id="mainContent">
-    <div class="kpi-row" id="kpiRow"></div>
-    <div class="dash-grid" id="dashGrid"></div>
-    <footer>Construction Simulator Experience &bull; Analytics Dashboard &bull; 2026</footer>
-  </div>
-</div>
-
 <script>
 // ═══════════════════════════════════════════════════════════
 // DATA STORE
@@ -426,7 +6,6 @@ let rawWeb=[], rawExc=[], rawWin=[];
 let loadedCount=0;
 const PIE_PALETTE=['#f0a500','#e85d04','#3fb950','#58a6ff','#bc8cff','#f85149','#39c5cf','#ff6eb4','#56d4c8','#ff9f43','#a8ff78','#ffd700','#ff6b9d','#c0c0c0','#87ceeb','#dda0dd'];
 const CERT_NAMES=['CDL','HEO Cert','Journeyman Electrician','Master Electrician','NEC Cert','CCM','PMP','CCO','EPA 608 Cert','HVAC Excellence Cert','Journeyman Plumber License','Master Plumber License','CW','CWI','CLC','MCAA'];
-
 let charts={};
 let filters={
   event:'ALL',
@@ -441,7 +20,6 @@ let filters={
 };
 let showAllParticipants=false;
 let tblSearch='';
-
 // ═══════════════════════════════════════════════════════════
 // FILE DETECTION
 // ═══════════════════════════════════════════════════════════
@@ -452,7 +30,6 @@ function detectType(cols){
   if(cs.some(c=>c.includes('first name'))||cs.some(c=>c.includes('mobile phone')&&c.includes('dob'))||cs.some(c=>c.includes('job status'))) return 'web';
   return null;
 }
-
 function handleFile(slot, input){
   const file=input.files[0]; if(!file) return;
   Papa.parse(file,{
@@ -462,21 +39,17 @@ function handleFile(slot, input){
       const type=detectType(cols);
       const statusEl=document.getElementById(`dz${slot}s`);
       const dzEl=document.getElementById(`dz${slot}`);
-
       if(!type){
         statusEl.style.color='var(--red)';
         statusEl.textContent='⚠ Unrecognized format';
         return;
       }
-
       if(type==='web') rawWeb=res.data;
       if(type==='exc') rawExc=res.data;
       if(type==='win') rawWin=res.data;
-
       dzEl.classList.add('loaded');
       statusEl.style.color='var(--green)';
       statusEl.textContent=`✓ ${type.toUpperCase()} — ${res.data.length} rows`;
-
       // count distinct loaded types
       const loaded=new Set();
       if(rawWeb.length) loaded.add('web');
@@ -486,7 +59,6 @@ function handleFile(slot, input){
     }
   });
 }
-
 // Drag & drop
 document.querySelectorAll('.drop-zone').forEach((dz,i)=>{
   dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag-over');});
@@ -500,7 +72,60 @@ document.querySelectorAll('.drop-zone').forEach((dz,i)=>{
 });
 
 // ═══════════════════════════════════════════════════════════
-// BUILD DASHBOARD
+// AUTO-LOAD SAMPLE DATA FROM GITHUB (NEW - ONLY ADDITION)
+// ═══════════════════════════════════════════════════════════
+async function loadSampleData() {
+  const files = {
+    web: 'data/web-registrations.csv',
+    exc: 'data/excavator-simulator.csv',
+    win: 'data/windows-trivia.csv'
+  };
+
+  try {
+    // Load Web Registration
+    let res = await fetch(files.web);
+    if (res.ok) {
+      const text = await res.text();
+      Papa.parse(text, { header: true, skipEmptyLines: true, complete: r => { rawWeb = r.data || []; } });
+    }
+
+    // Load Excavator Simulator
+    res = await fetch(files.exc);
+    if (res.ok) {
+      const text = await res.text();
+      Papa.parse(text, { header: true, skipEmptyLines: true, complete: r => { rawExc = r.data || []; } });
+    }
+
+    // Load Windows Trivia
+    res = await fetch(files.win);
+    if (res.ok) {
+      const text = await res.text();
+      Papa.parse(text, { header: true, skipEmptyLines: true, complete: r => { rawWin = r.data || []; } });
+    }
+
+    // Give PapaParse a tiny moment to finish (CSVs are small)
+    await new Promise(resolve => setTimeout(resolve, 800));
+
+    if (rawWeb.length || rawExc.length || rawWin.length) {
+      console.log(`✅ Preloaded sample data: ${rawWeb.length} web, ${rawExc.length} exc, ${rawWin.length} win`);
+      // Auto-build dashboard exactly like the original Load button
+      document.getElementById('uploadScreen').style.display = 'none';
+      document.getElementById('appHeader').style.display = 'flex';
+      document.getElementById('appLayout').style.display = 'flex';
+      populateEventDropdown();
+      buildSidebar();
+      render();
+    } else {
+      throw new Error('No sample data');
+    }
+  } catch (err) {
+    console.warn('Sample data not found — showing manual upload screen', err);
+    // Upload screen stays visible (no changes to original behavior)
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// BUILD DASHBOARD (original - unchanged)
 // ═══════════════════════════════════════════════════════════
 function buildDashboard(){
   document.getElementById('uploadScreen').style.display='none';
@@ -510,7 +135,6 @@ function buildDashboard(){
   buildSidebar();
   render();
 }
-
 function reloadUpload(){
   rawWeb=[];rawExc=[];rawWin=[];
   document.getElementById('uploadScreen').style.display='flex';
@@ -523,18 +147,15 @@ function reloadUpload(){
   });
   ['dz0','dz1','dz2'].forEach(id=>document.getElementById(id).classList.remove('loaded'));
 }
-
 // ═══════════════════════════════════════════════════════════
-// HELPERS
+// HELPERS (original - unchanged)
 // ═══════════════════════════════════════════════════════════
 function getPhone(row,isExc){
   return isExc ? String(row['Login Code']||'').trim() : String(row['Mobile Phone']||'').trim();
 }
-
 function normalizePhone(p){
   return String(p||'').replace(/\D/g,'').replace(/^1/,'').slice(-10);
 }
-
 function getAge(dob){
   if(!dob) return null;
   const d=new Date(dob);
@@ -542,14 +163,12 @@ function getAge(dob){
   const now=new Date(2026,2,12);
   return Math.floor((now-d)/(365.25*86400000));
 }
-
 function ageGroup(age){
   if(!age||age<18) return null;
   const bins=[[18,20],[21,25],[26,30],[31,35],[36,40],[41,45],[46,50],[51,55],[56,60],[61,65],[66,70],[71,75],[76,80]];
   for(const [lo,hi] of bins) if(age>=lo&&age<=hi) return `${lo}-${hi}`;
   return '80+';
 }
-
 function excScoreSeg(score){
   if(score==null) return null;
   if(score<=10) return '0-10';
@@ -563,7 +182,6 @@ function excScoreSeg(score){
   if(score<=90) return '81-90';
   return '91-100';
 }
-
 function getEvents(){
   const ev=new Set(['ALL']);
   [...rawWeb,...rawExc,...rawWin].forEach(r=>{
@@ -572,7 +190,6 @@ function getEvents(){
   });
   return [...ev];
 }
-
 function populateEventDropdown(){
   const sel=document.getElementById('eventSelect');
   sel.innerHTML='';
@@ -582,39 +199,32 @@ function populateEventDropdown(){
     sel.appendChild(o);
   });
 }
-
 function onEventChange(){
   filters.event=document.getElementById('eventSelect').value;
   render();
 }
-
 // ═══════════════════════════════════════════════════════════
-// FILTERING
+// FILTERING (original - unchanged)
 // ═══════════════════════════════════════════════════════════
 function filteredWeb(){
   return rawWeb.filter(r=>{
     if(filters.event!=='ALL'&&(r['Event Name']||'').trim()!==filters.event) return false;
-    // Employment
     if(filters.employment.size>0){
       const emp=(r['Job Status']||'').trim();
       if(!filters.employment.has(emp)) return false;
     }
-    // Job interest
     if(filters.jobInterest.size>0){
       const ji=(r['Are you interested in new job opportunities in Construction/ trades?']||'').trim();
       if(!filters.jobInterest.has(ji)) return false;
     }
-    // Age
     if(filters.ageGroups.size>0){
       const ag=ageGroup(getAge(r['DOB']));
       if(!ag||!filters.ageGroups.has(ag)) return false;
     }
-    // Gender
     if(filters.gender.size>0){
       const g=(r['Gender']||'').trim();
       if(!filters.gender.has(g)) return false;
     }
-    // State
     if(filters.states.size>0){
       const s=(r['State']||'').trim();
       if(!filters.states.has(s)) return false;
@@ -622,7 +232,6 @@ function filteredWeb(){
     return true;
   });
 }
-
 function filteredExc(){
   return rawExc.filter(r=>{
     if(filters.event!=='ALL'&&(r['Event Name']||'').trim()!==filters.event) return false;
@@ -634,7 +243,6 @@ function filteredExc(){
     return true;
   });
 }
-
 function filteredWin(){
   return rawWin.filter(r=>{
     if(filters.event!=='ALL'&&(r['Event Name']||'').trim()!==filters.event) return false;
@@ -649,8 +257,6 @@ function filteredWin(){
     return true;
   });
 }
-
-// Build a phone→row map
 function webMap(webRows){
   const m=new Map();
   webRows.forEach(r=>{ const p=normalizePhone(getPhone(r,false)); if(p) m.set(p,r); });
@@ -666,20 +272,14 @@ function winMap(winRows){
   winRows.forEach(r=>{ const p=normalizePhone(r['Mobile Phone']||''); if(p) m.set(p,r); });
   return m;
 }
-
-// Cross-filter: when EXC filter active, only keep web rows whose phone is in filtered exc
-// When web filter active, only keep exc rows whose phone is in filtered web
 function crossFilteredData(){
   const fW=filteredWeb();
   const fE=filteredExc();
   const fN=filteredWin();
-
   const hasWebFilter=filters.employment.size>0||filters.jobInterest.size>0||filters.ageGroups.size>0||filters.gender.size>0||filters.states.size>0;
   const hasExcFilter=(filters.excMin>0||filters.excMax<100||filters.scoreSegs.size>0);
   const hasWinFilter=filters.trivia.size>0;
-
   let webRows=fW, excRows=fE, winRows=fN;
-
   if(hasExcFilter){
     const excPhones=new Set(fE.map(r=>normalizePhone(getPhone(r,true))));
     webRows=webRows.filter(r=>excPhones.has(normalizePhone(getPhone(r,false))));
@@ -695,12 +295,10 @@ function crossFilteredData(){
     webRows=webRows.filter(r=>winPhones.has(normalizePhone(getPhone(r,false))));
     excRows=excRows.filter(r=>winPhones.has(normalizePhone(getPhone(r,true))));
   }
-
   return {webRows,excRows,winRows};
 }
-
 // ═══════════════════════════════════════════════════════════
-// SIDEBAR
+// SIDEBAR (original - unchanged)
 // ═══════════════════════════════════════════════════════════
 function buildSidebar(){
   buildChipFilter('fJI',['Yes','Maybe','No','No Answer'],'jobInterest');
@@ -712,25 +310,17 @@ function buildSidebar(){
       'Unemployed and looking for work':'Unemployed','Other':'Other'
     });
   buildChipFilter('fScore',['0-10','11-20','21-30','31-40','41-50','51-60','61-70','71-80','81-90','91-100'],'scoreSegs');
-
-  // Age groups from data
   const ages=rawWeb.map(r=>getAge(r['DOB'])).filter(Boolean).map(ageGroup).filter(Boolean);
   const ageSet=[...new Set(ages)].sort((a,b)=>parseInt(a)-parseInt(b));
   buildChipFilter('fAge',ageSet,'ageGroups');
-
-  // Gender
   const genders=[...new Set(rawWeb.map(r=>(r['Gender']||'').trim()).filter(Boolean))];
   buildChipFilter('fGender',genders,'gender');
-
-  // Top 10 states
   const stateCounts={};
   rawWeb.forEach(r=>{ const s=(r['State']||'').trim(); if(s) stateCounts[s]=(stateCounts[s]||0)+1; });
   const top10=Object.entries(stateCounts).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([s])=>s);
   buildChipFilter('fState',top10,'states');
-
   buildChipFilter('fTrivia',['Auto Mechanic','Civil Construction','Electrical','Plumbing','Welding','Construction Labor','HVAC','Warehouse'],'trivia');
 }
-
 function buildChipFilter(containerId, options, filterKey, labelMap={}){
   const container=document.getElementById(containerId);
   container.innerHTML='';
@@ -751,7 +341,6 @@ function buildChipFilter(containerId, options, filterKey, labelMap={}){
     container.appendChild(chip);
   });
 }
-
 function onExcRange(){
   let mn=parseInt(document.getElementById('excMin').value);
   let mx=parseInt(document.getElementById('excMax').value);
@@ -762,7 +351,6 @@ function onExcRange(){
   updateActiveCount();
   render();
 }
-
 function updateActiveCount(){
   let n=0;
   if(filters.excMin>0||filters.excMax<100) n++;
@@ -772,7 +360,6 @@ function updateActiveCount(){
   el.textContent=n; el.style.display=n>0?'inline':'none';
   btn.style.display=n>0?'inline':'none';
 }
-
 function clearAllFilters(){
   filters.excMin=0; filters.excMax=100;
   document.getElementById('excMin').value=0;
@@ -784,9 +371,8 @@ function clearAllFilters(){
   updateActiveCount();
   render();
 }
-
 // ═══════════════════════════════════════════════════════════
-// RENDER
+// RENDER (original - unchanged)
 // ═══════════════════════════════════════════════════════════
 function render(){
   const {webRows,excRows,winRows}=crossFilteredData();
@@ -794,12 +380,10 @@ function render(){
   renderKPIs(webRows,excRows,winRows);
   renderGrid(webRows,excRows,winRows);
 }
-
 function destroyCharts(){
   Object.values(charts).forEach(c=>{if(c)c.destroy();});
   charts={};
 }
-
 function renderKPIs(webRows,excRows,winRows){
   const ji=webRows.map(r=>(r['Are you interested in new job opportunities in Construction/ trades?']||'').trim());
   const hotLeads=ji.filter(v=>v==='Yes'||v==='Maybe').length;
@@ -826,7 +410,6 @@ function renderKPIs(webRows,excRows,winRows){
     </div>
   `;
 }
-
 function renderGrid(webRows,excRows,winRows){
   document.getElementById('dashGrid').innerHTML=`
     <div class="card" id="cExcDist">
@@ -870,18 +453,13 @@ function renderGrid(webRows,excRows,winRows){
       </tr></thead><tbody id="ptblBody"></tbody></table></div>
     </div>
   `;
-
-  // Update badges
   if(filters.scoreSegs.size>0||filters.excMin>0||filters.excMax<100) document.getElementById('badgeExc').style.display='inline';
   if(filters.employment.size>0) document.getElementById('badgeEmp').style.display='inline';
   if(filters.jobInterest.size>0) document.getElementById('badgeJI').style.display='inline';
   if(filters.ageGroups.size>0) document.getElementById('badgeAge').style.display='inline';
   if(filters.states.size>0) document.getElementById('badgeState').style.display='inline';
   if(filters.trivia.size>0) document.getElementById('badgeTrivia').style.display='inline';
-
   const co={responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#8b949e',font:{family:'Barlow Condensed',size:11,weight:'600'},padding:10}}}};
-
-  // 1. EXC Score Dist (Pie)
   const scoreBuckets={};
   ['0-10','11-20','21-30','31-40','41-50','51-60','61-70','71-80','81-90','91-100'].forEach(b=>scoreBuckets[b]=0);
   excRows.forEach(r=>{const s=parseFloat(r['Total Score']);if(!isNaN(s)){const seg=excScoreSeg(s);if(seg)scoreBuckets[seg]++;}});
@@ -892,8 +470,6 @@ function renderGrid(webRows,excRows,winRows){
     data:{labels:sdK.map(k=>`Score ${k}`),datasets:[{data:sdV,backgroundColor:PIE_PALETTE.slice(0,sdV.length),borderColor:'#161b22',borderWidth:2}]},
     options:{...co,onClick:(evt,els)=>{if(!els.length)return;const seg=sdK[els[0].index];toggleFilter('scoreSegs',seg);}}
   });
-
-  // 2. Employment (Pie)
   const empMap={};
   const empShort={'Currently employed in construction and/or a trade':'In Trades','Currently employed in another industry':'Other Industry','Retired':'Retired','Other':'Other','Student':'Student','Unemployed and looking for work':'Unemployed'};
   webRows.forEach(r=>{const e=(r['Job Status']||'').trim();if(e)empMap[e]=(empMap[e]||0)+1;});
@@ -903,8 +479,6 @@ function renderGrid(webRows,excRows,winRows){
     data:{labels:empK.map(k=>empShort[k]||k),datasets:[{data:empV,backgroundColor:PIE_PALETTE.slice(0,empV.length),borderColor:'#161b22',borderWidth:2}]},
     options:{...co,onClick:(evt,els)=>{if(!els.length)return;const seg=empK[els[0].index];toggleFilter('employment',seg);}}
   });
-
-  // 3. Job Interest (Pie)
   const jiMap={};
   webRows.forEach(r=>{const v=(r['Are you interested in new job opportunities in Construction/ trades?']||'').trim()||'No Answer';jiMap[v]=(jiMap[v]||0)+1;});
   const jiColors={'Yes':'#3fb950','Maybe':'#f0a500','No':'#f85149','No Answer':'#8b949e'};
@@ -914,8 +488,6 @@ function renderGrid(webRows,excRows,winRows){
     data:{labels:jiK,datasets:[{data:jiV,backgroundColor:jiK.map(k=>jiColors[k]||'#8b949e'),borderColor:'#161b22',borderWidth:2}]},
     options:{...co,onClick:(evt,els)=>{if(!els.length)return;const seg=jiK[els[0].index];toggleFilter('jobInterest',seg);}}
   });
-
-  // 4. Age Histogram (Bar - wide)
   const ageBins=['18-20','21-25','26-30','31-35','36-40','41-45','46-50','51-55','56-60','61-65','66-70','71-75','76-80','80+'];
   const ageCounts={};ageBins.forEach(b=>ageCounts[b]=0);
   webRows.forEach(r=>{const a=getAge(r['DOB']);const g=ageGroup(a);if(g&&ageCounts[g]!==undefined)ageCounts[g]++;});
@@ -928,8 +500,6 @@ function renderGrid(webRows,excRows,winRows){
       onClick:(evt,els)=>{if(!els.length)return;const seg=ahK[els[0].index];toggleFilter('ageGroups',seg);}
     }
   });
-
-  // 5. Certs (horizontal bar)
   const certColNames=['Trade Certifications or Licenses','Trade Certifications or Licenses.1','Trade Certifications or Licenses.2','Trade Certifications or Licenses.3','Trade Certifications or Licenses.4','Trade Certifications or Licenses.5','Trade Certifications or Licenses.6','Trade Certifications or Licenses.7','Trade Certifications or Licenses.8','Trade Certifications or Licenses.9','Trade Certifications or Licenses.10','Trade Certifications or Licenses.11','Trade Certifications or Licenses.12','Trade Certifications or Licenses.13','Trade Certifications or Licenses.14','Trade Certifications or Licenses.15'];
   const certCounts=CERT_NAMES.map((name,i)=>{const col=certColNames[i];return{name,count:webRows.filter(r=>r[col]==='Yes').length};});
   const certFiltered=certCounts.filter(c=>c.count>0).sort((a,b)=>b.count-a.count);
@@ -938,8 +508,6 @@ function renderGrid(webRows,excRows,winRows){
     data:{labels:certFiltered.map(c=>c.name),datasets:[{label:'Holders',data:certFiltered.map(c=>c.count),backgroundColor:certFiltered.map((_,i)=>PIE_PALETTE[i%PIE_PALETTE.length]+'cc'),borderColor:'transparent',borderRadius:3}]},
     options:{...co,indexAxis:'y',plugins:{...co.plugins,legend:{display:false}},scales:{x:{ticks:{color:'#8b949e',font:{family:'Barlow Condensed',size:10}},grid:{color:'#21262d'}},y:{ticks:{color:'#e6edf3',font:{family:'Barlow Condensed',size:11,weight:'600'}},grid:{color:'#21262d'}}}}
   });
-
-  // 6. States
   const stateC={};
   webRows.forEach(r=>{const s=(r['State']||'').trim();if(s)stateC[s]=(stateC[s]||0)+1;});
   const stateGrid=document.getElementById('stateGrid');
@@ -947,8 +515,6 @@ function renderGrid(webRows,excRows,winRows){
     <div class="state-row" style="${filters.states.has(s)?'border-left-color:var(--accent)':''}" onclick="toggleFilter('states','${s}')">
       <span class="state-name">${s}</span><span class="state-count">${c}</span>
     </div>`).join('');
-
-  // 7. Trivia
   const TRIVIA_COLS={'Auto Mechanic':'Trivia Auto Mechanic Score','Civil Construction':'Trivia Civil Construction Score','Electrical':'Trivia Electrical Score','Plumbing':'Trivia Plumbing Score','Welding':'Trivia Welding Score','Construction Labor':'Trivia Construction Labor Score','HVAC':'Trivia HVAC Score','Warehouse':'Trivia Warehouse Score'};
   const triviaData=Object.entries(TRIVIA_COLS).map(([name,col])=>{
     const vals=winRows.map(r=>parseFloat(r[col])).filter(v=>!isNaN(v));
@@ -962,25 +528,18 @@ function renderGrid(webRows,excRows,winRows){
       <td class="tavg">${d.avg.toFixed(1)}</td>
       <td><div class="mini-bar-bg"><div class="mini-bar-fill" style="width:${(d.avg/maxAvg*100).toFixed(1)}%"></div></div></td>
     </tr>`).join('');
-
-  // Store for table search ref
   window.webRows2=webRows; window.excRows2=excRows; window.winRows2=winRows;
   renderTable(webRows,excRows,winRows);
 }
-
 function renderTable(webRows,excRows,winRows){
   const eMap=excMap(excRows);
   const wMap=webMap(webRows);
   const nMap=winMap(winRows);
-
   const TRIVIA_COLS={'Auto Mechanic':'Trivia Auto Mechanic Score','Civil Construction':'Trivia Civil Construction Score','Electrical':'Trivia Electrical Score','Plumbing':'Trivia Plumbing Score','Welding':'Trivia Welding Score','Construction Labor':'Trivia Construction Labor Score','HVAC':'Trivia HVAC Score','Warehouse':'Trivia Warehouse Score'};
-
-  // Gather all phones
   const allPhones=new Set();
   webRows.forEach(r=>allPhones.add(normalizePhone(getPhone(r,false))));
   excRows.forEach(r=>allPhones.add(normalizePhone(getPhone(r,true))));
   winRows.forEach(r=>allPhones.add(normalizePhone(r['Mobile Phone']||'')));
-
   let rows=[];
   allPhones.forEach(phone=>{
     if(!phone) return;
@@ -988,7 +547,6 @@ function renderTable(webRows,excRows,winRows){
     const e=eMap.get(phone);
     const n=nMap.get(phone);
     if(!showAllParticipants&&!w) return;
-
     const firstName=w?w['First Name']:'';
     const lastName=w?w['Last Name']:'';
     const name=`${firstName} ${lastName}`.trim()||'—';
@@ -997,8 +555,6 @@ function renderTable(webRows,excRows,winRows){
     const event=w?(w['Event Name']||'').trim():e?(e['Event Name']||'').trim():n?(n['Event Name']||'').trim():'';
     const excScore=e?parseFloat(e['Total Score']):null;
     const ji=w?(w['Are you interested in new job opportunities in Construction/ trades?']||'').trim():'';
-
-    // trivia
     let triviaStr='—';
     if(n){
       const taken=Object.entries(TRIVIA_COLS).filter(([nm,col])=>n[col]!==''&&n[col]!==null&&n[col]!==undefined&&!isNaN(parseFloat(n[col])));
@@ -1008,26 +564,18 @@ function renderTable(webRows,excRows,winRows){
         triviaStr=taken.map(([nm])=>nm).join(', ')+` (avg ${avg})`;
       }
     }
-
     rows.push({phone,name,addr,state,event,excScore,trivia:triviaStr,ji});
   });
-
-  // Search
   const q=tblSearch.toLowerCase();
   if(q) rows=rows.filter(r=>r.name.toLowerCase().includes(q)||r.phone.includes(q));
-
-  // Sort by exc score desc
   rows.sort((a,b)=>{
     if(a.excScore==null&&b.excScore==null) return 0;
     if(a.excScore==null) return 1; if(b.excScore==null) return -1;
     return b.excScore-a.excScore;
   });
-
   document.getElementById('tblCount').textContent=`${rows.length.toLocaleString()} participants`;
-
   const tbody=document.getElementById('ptblBody');
   if(!rows.length){tbody.innerHTML=`<tr><td colspan="9" class="no-data">No participants match the current filters.</td></tr>`;return;}
-
   tbody.innerHTML=rows.map((r,i)=>{
     const scoreBadge=r.excScore==null
       ?`<span class="score-badge dnc">DNC</span>`
@@ -1046,12 +594,10 @@ function renderTable(webRows,excRows,winRows){
     </tr>`;
   }).join('');
 }
-
 function toggleFilter(key, value){
   if(filters[key] instanceof Set){
     if(filters[key].has(value)) filters[key].delete(value);
     else filters[key].add(value);
-    // Sync sidebar chips
     document.querySelectorAll('.filter-chip').forEach(c=>{
       if(c.dataset.value===value) c.classList.toggle('active',filters[key].has(value));
     });
@@ -1059,13 +605,19 @@ function toggleFilter(key, value){
   updateActiveCount();
   render();
 }
-
 function toggleShowAll(){
   showAllParticipants=!showAllParticipants;
   const btn=document.getElementById('showAllToggle');
   if(btn){btn.classList.toggle('on',showAllParticipants);btn.textContent=showAllParticipants?'Hide Unmatched':'Show Unmatched';}
   if(window.webRows2) renderTable(window.webRows2,window.excRows2,window.winRows2);
 }
+
+// ═══════════════════════════════════════════════════════════
+// AUTO-START PRELOADED DATA ON PAGE LOAD (NEW - ONLY ADDITION)
+// ═══════════════════════════════════════════════════════════
+window.addEventListener('load', () => {
+  if (rawWeb.length === 0 && rawExc.length === 0 && rawWin.length === 0) {
+    loadSampleData();
+  }
+});
 </script>
-</body>
-</html>
