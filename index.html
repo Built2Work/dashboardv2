@@ -612,12 +612,10 @@ function toggleShowAll(){
   if(window.webRows2) renderTable(window.webRows2,window.excRows2,window.winRows2);
 }
 
-// ═══════════════════════════════════════════════════════════
-// AUTO-START PRELOADED DATA ON PAGE LOAD (NEW - ONLY ADDITION)
-// ═══════════════════════════════════════════════════════════
-window.addEventListener('load', () => {
+// Force auto-load immediately
+setTimeout(() => {
   if (rawWeb.length === 0 && rawExc.length === 0 && rawWin.length === 0) {
     loadSampleData();
   }
-});
+}, 500);
 </script>
